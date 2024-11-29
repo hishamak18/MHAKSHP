@@ -3,9 +3,11 @@ import cv2
 import numpy as np
 from flask import Flask, render_template, request, jsonify
 import base64
+from flask_cors import CORS
+
 
 app = Flask(__name__)
-
+CORS(app) 
 # Function to detect and analyze shapes
 def check_shapes_inside(image_path, fill_closed=False):
     if not os.path.exists(image_path):
