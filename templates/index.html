@@ -60,6 +60,9 @@
         const fillClosedButton = document.getElementById('fill-closed');
         const shapeCanvas = document.getElementById("shapeCanvas");
         const drawShapeButton = document.getElementById("draw-shape");
+        const gurl = 'https://mhakshp.onrender.com/generate_points'
+        const uUrl = 'https://mhakshp.onrender.com/upload'
+        const fUrl = 'https://mhakshp.onrender.com//fill_closed_shapes'
 
         let uploadedFile = null;
 
@@ -76,7 +79,7 @@
             const formData = new FormData();
             formData.append('file', file);
 
-            fetch('/upload', {
+            fetch(uUrl, {
                 method: 'POST',
                 body: formData,
             })
@@ -99,7 +102,7 @@
             const formData = new FormData();
             formData.append('file', uploadedFile);
 
-            fetch('/generate_points', {
+            fetch(gurl, {
                 method: 'POST',
                 body: formData,
             })
@@ -137,7 +140,7 @@
             const formData = new FormData();
             formData.append('file', uploadedFile);
 
-            fetch('/fill_closed_shapes', {
+            fetch(fUr, {
                 method: 'POST',
                 body: formData,
             })
