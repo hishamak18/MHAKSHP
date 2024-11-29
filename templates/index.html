@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shape Detection & Drawing</title>
+</head>
+
+<body>
+    <h1>Shape Detection & Drawing</h1>
+
+    <!-- Shape Detection Section -->
+    <section id="shape-detection">
+        <h2>Shape Detection</h2>
+        <form id="upload-form">
+            <label for="file">Select an image:</label>
+            <input type="file" id="file" name="file" accept="image/*">
+            <button type="submit">Upload and Detect Shapes</button>
+        </form>
+
+        <div id="results" style="display: none;">
+            <h3>Results:</h3>
+            <p id="closed-shapes"></p>
+            <p id="open-shapes"></p>
+            <h3>Processed Image:</h3>
+            <img id="processed-image" src="" alt="Processed Image" style="max-width: 100%; height: auto;">
+            <button id="fill-closed">Fill Closed Shapes</button>
+            <button id="generate-points">Generate Shape Points</button>
+            <pre id="shape-points-output"
+                style="background: #f4f4f4; padding: 10px; overflow-y: auto; max-height: 150px; border: 1px solid #ccc; white-space: pre-wrap;"></pre>
+            <button id="copy-points">Copy Points</button>
+            <!-- <h3>Visualize Shape:</h3>
+            <canvas id="shapeCanvas" width="600" height="600" style="border: 1px solid #ccc;"></canvas>
+            <button id="draw-shape">Draw Shape</button> -->
+        </div>
+    </section>
+
+    <hr>
+
+    <!-- Sketch Drawing Section -->
+    <section id="sketch-drawing">
+        <h2>Sketch Drawing</h2>
+        <label for="sketch-input">Enter Sketch String:</label>
+        <textarea id="sketch-input" rows="6" style="width: 100%;"></textarea>
+        <button id="draw-sketch">Draw Sketch</button>
+        <canvas id="sketchCanvas" width="1200" height="1200" style="border: 1px solid #ccc;"></canvas>
+    </section>
+
+    <script>
+        // Shape Detection Script
+        const generatePointsButton = document.getElementById('generate-points');
+        const copyPointsButton = document.getElementById('copy-points');
+        const shapePointsOutput = document.getElementById("shape-points-output");
+        const form = document.getElementById('upload-form');
+        const resultsDiv = document.getElementById('results');
+        const closedShapesText = document.getElementById('closed-shapes');
+        const openShapesText = document.getElementById('open-shapes');
+        const processedImage = document.getElementById('processed-image');
+        const fillClosedButton = document.getElementById('fill-closed');
+        const shapeCanvas = document.getElementById("shapeCanvas");
+        const drawShapeButton = document.getElementById("draw-shape");
+
+        let uploadedFile = null;
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const fileInput = document.getElementById('file');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a file first.');
+                return;
+            }
+
+            uploadedFile = file;
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData,
+            })
+                .then(response => response.json())
+                .then(data => {
+                    closedShapesText.innerText = `Closed Shapes: ${data.closed_shapes}`;
+                    openShapesText.innerText = `Open Shapes: ${data.open_shapes}`;
+                    processedImage.src = `data:image/png;base64,${data.img_str}`;
+                    resultsDiv.style.display = 'block';
+                })
+                .catch(error => console.error('Error uploading file:', error));
+        });
+
+        generatePointsButton.addEventListener('click', () => {
+            if (!uploadedFile) {
+                alert('Please upload a file first.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', uploadedFile);
+
+            fetch('/generate_points', {
+                method: 'POST',
+                body: formData,
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.shapes_points) {
+                        const pointsText = JSON.stringify(data.shapes_points, null, 2);
+                        shapePointsOutput.textContent = pointsText;
+                        shapePointsOutput.style.display = 'block';
+                    } else {
+                        alert('No points were generated.');
+                    }
+                })
+                .catch(error => console.error('Error generating shape points:', error));
+        });
+
+        copyPointsButton.addEventListener('click', () => {
+            const pointsText = shapePointsOutput.textContent;
+            if (!pointsText) {
+                alert('No points to copy.');
+                return;
+            }
+
+            navigator.clipboard.writeText(pointsText)
+                .then(() => alert('Shape points copied to clipboard!'))
+                .catch(error => console.error('Error copying points:', error));
+        });
+
+        fillClosedButton.addEventListener('click', () => {
+            if (!uploadedFile) {
+                alert('Please upload a file first.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', uploadedFile);
+
+            fetch('/fill_closed_shapes', {
+                method: 'POST',
+                body: formData,
+            })
+                .then(response => response.json())
+                .then(data => {
+                    closedShapesText.innerText = `Closed Shapes: ${data.closed_shapes}`;
+                    openShapesText.innerText = `Open Shapes: ${data.open_shapes}`;
+                    processedImage.src = `data:image/png;base64,${data.img_str}`;
+                })
+                .catch(error => console.error('Error filling closed shapes:', error));
+        });
+
+        drawShapeButton.addEventListener("click", () => {
+            const ctx = shapeCanvas.getContext("2d");
+            ctx.clearRect(0, 0, shapeCanvas.width, shapeCanvas.height);
+
+            try {
+                const points = JSON.parse(shapePointsOutput.textContent.trim());
+                if (!Array.isArray(points) || points.length === 0) {
+                    alert("No valid points to draw.");
+                    return;
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(points[0][0], points[0][1]);
+                points.forEach(([x, y]) => ctx.lineTo(x, y));
+                ctx.closePath();
+                ctx.stroke();
+
+                ctx.fillStyle = "rgba(0, 128, 255, 0.3)";
+                ctx.fill();
+            } catch (error) {
+                alert("Invalid points data. Ensure it's in valid JSON format.");
+            }
+        });
+
+        // Sketch Drawing Script
+        const drawSketchButton = document.getElementById("draw-sketch");
+        const sketchCanvas = document.getElementById("sketchCanvas");
+
+        drawSketchButton.addEventListener("click", () => {
+            const ctx = sketchCanvas.getContext("2d");
+            const sketchInput = document.getElementById("sketch-input").value;
+
+            const scale = 5;
+            const colors = ['red', 'blue', 'green', 'yellow', 'orange'];
+
+            const shapes = sketchInput.split(",");
+            let colorIndex = 0;
+
+            ctx.clearRect(0, 0, sketchCanvas.width, sketchCanvas.height);
+
+            shapes.forEach((shape) => {
+                const match = shape.match(/\[(.*?)\]/);
+                const [dx, dy] = match ? match[1].split(",").slice(3, 5).map(Number) : [600, 600];
+
+                let x = dx, y = dy;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.strokeStyle = colors[colorIndex++ % colors.length];
+
+                const instructions = shape.match(/:(.*)/)?.[1]?.trim().split(/\s+/);
+                if (!instructions) return;
+
+                instructions.forEach((command) => {
+                    const dir = command[0], value = parseInt(command.slice(1)) * scale;
+                    if (dir === "D") y += value;
+                    else if (dir === "U") y -= value;
+                    else if (dir === "L") x -= value;
+                    else if (dir === "R") x += value;
+
+                    ctx.lineTo(x, y);
+                });
+
+                ctx.stroke();
+            });
+        });
+    </script>
+</body>
+
+</html>

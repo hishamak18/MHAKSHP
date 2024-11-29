@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shape Detection Result</title>
+</head>
+
+<body>
+    <h1>Shape Detection Results</h1>
+    <p id="closed-shapes">Closed Shapes: {{ closed_shapes }}</p>
+    <p id="open-shapes">Open Shapes: {{ open_shapes }}</p>
+    <button id="fill-closed" onclick="fillClosedShapes()">Fill Closed Shapes</button>
+
+    <h3>Processed Image:</h3>
+    <img id="processed-image" src="data:image/png;base64,{{ img_str }}" alt="Processed Image"
+        style="max-width: 100%; height: auto;">
+
+    <script>
+        let imgStr = '';
+        let closedShapes = 0;
+        let openShapes = 0;
+
+        // Function to handle the button click and send a POST request
+        function fillClosedShapes() {
+            fetch('/fill_closed_shapes', {
+                method: 'POST',
+                body: JSON.stringify({ fill_closed: true }),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.statusText}`);
+                    }
+                    return response.json(); // Only parse as JSON if the response is OK
+                })
+                .then(data => {
+                    closedShapes = data.closed_shapes;
+                    openShapes = data.open_shapes;
+                    imgStr = data.img_str;
+
+                    // Update the DOM elements with the received data
+                    document.getElementById('closed-shapes').innerText = 'Closed Shapes: ' + closedShapes;
+                    document.getElementById('open-shapes').innerText = 'Open Shapes: ' + openShapes;
+                    document.getElementById('processed-image').src = 'data:image/png;base64,' + imgStr;
+                })
+                .catch(error => {
+                    console.error("Error filling closed shapes:", error);
+                });
+        }
+    </script>
+</body>
+
+</html>

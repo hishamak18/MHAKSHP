@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sketch Drawing</title>
+</head>
+
+<body>
+    <h1>Sketch Drawing</h1>
+    <canvas id="canvas" width="800" height="800" style="border: 1px solid #000;"></canvas>
+    <br />
+    <label for="sketch-input">Enter Sketch String:</label>
+    <textarea id="sketch-input" rows="5" cols="50"></textarea>
+    <br />
+    <button id="draw-sketch">Draw Sketch</button>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function drawFromString(sketchString) {
+            const scale = 5;
+
+            // List of ordered colors for stroke styles
+            const colors = [
+                'red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'brown', 'cyan'
+            ];
+
+            // Clear the canvas before drawing
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Split shapes
+            const shapes = sketchString.split(',');
+            let shapeIndex = 0; // Start with the first color
+
+            shapes.forEach(shape => {
+                // Extract starting point (dx, dy) and commands
+                const startPointMatch = shape.match(/\[(.*?)-(.*?)\]/);
+                const dx = parseInt(startPointMatch?.[1]?.split(',')[3] ?? 600, 10); // Default x=600
+                const dy = parseInt(startPointMatch?.[1]?.split(',')[4] ?? 600, 10); // Default y=600
+
+                const instructions = shape.match(/:(.*)/)?.[1]?.trim();
+                if (!instructions) return;
+
+                // Reset starting point
+                let x = dx;
+                let y = dy;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+
+                // Set stroke color from the ordered list
+                ctx.strokeStyle = colors[shapeIndex % colors.length]; // Cycle through colors
+
+                // Parse and execute commands
+                const commands = instructions.split(/\s+/);
+                commands.forEach(command => {
+                    const direction = command[0];
+                    const value = parseInt(command.slice(1), 10) * scale; // Scale the movement
+
+                    switch (direction) {
+                        case 'D': y += value; break; // Down
+                        case 'U': y -= value; break; // Up
+                        case 'L': x -= value; break; // Left
+                        case 'R': x += value; break; // Right
+                        case 'S': ctx.moveTo(x, y); return; // Start new segment
+                    }
+
+                    ctx.lineTo(x, y); // Draw line to new position
+                });
+
+                ctx.closePath();
+                ctx.stroke();
+
+                // Move to the next color in the list
+                shapeIndex++;
+            });
+        }
+
+        // Event listener for the draw button
+        document.getElementById('draw-sketch').addEventListener('click', () => {
+            const sketchInput = document.getElementById('sketch-input').value.trim();
+            if (!sketchInput) {
+                alert('Please enter a valid sketch string.');
+                return;
+            }
+
+            drawFromString(sketchInput);
+        });
+
+        // Example usage: Preload the default sketch string
+        const defaultSketchString = `
+        OFFM[59267,0,0,600,600-255-255-255,125-255-255-255,0]:D61 L29 S D17 D2/L2 D3 D2/R2 D18 R17 U4 R12 U38 L29,
+        UT50[124600,0,0,400,500-255-255-255,125-255-255-255,0]:L12 S L8 D19 R8 U19,
+        CAN30[170296,0,0,800,700-255-255-255,125-255-255-255,0]:D19 S L20 D4 R20 U4,
+        APT[205624,0,0,200,200-255-255-255,125-255-255-255,0]:D23 S L89 D38 R29 U38,
+        CAN20[228169,0,0,1000,900-255-255-255,125-255-255-255,0]:D3 S R4 D17 L4 U17,
+        OFFM[434536,0,0,500,850-255-255-255,125-255-255-255,0]:D23 S L29 D38 R29 U38,
+        OFFM[434537,0,0,800,400-255-255-255,125-255-255-255,0]:L20 S L20 D23 R11 R9 U23,
+        OFFM[434538,0,0,1100,1100-255-255-255,125-255-255-255,0]:S L12 D19 R12 U16 U3,
+        UT50[434539,0,0,700,300-255-255-255,125-255-255-255,0]:D19 S L20 D4 R20 U4`;
+
+        document.getElementById('sketch-input').value = defaultSketchString.trim();
+    </script>
+</body>
+
+</html>
